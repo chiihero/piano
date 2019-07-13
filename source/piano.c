@@ -109,11 +109,11 @@ void key_white(bool key, int pos)
 	{
 		if (key)
 		{
-			bmp2lcd(KEYONC, FB, &vinfo, white[0][pos], 150);
+			bmp2lcd(KEYON, FB, &vinfo, white[0][pos], 150);
 		}
 		else
 		{
-			bmp2lcd(KEYOFFC, FB, &vinfo, white[0][pos], 150);
+			bmp2lcd(KEYOFF, FB, &vinfo, white[0][pos], 150);
 		}
 		bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][pos], 150);
 	}
@@ -217,12 +217,12 @@ bool piano_change(bool is_white, int new_pos, int old_pos, bool touch)
 	}
 	return touch;
 }
+//音节下降
 void *play_line(void *n)
 {
 	int i;
 	int num = (int)n - 1;
 	printf("play_line ===========%d\n", num);
-
 	for (i = 0; i < 145; i += 2)
 	{
 		bmp2lcd(GAMEBLOCK, FB, &vinfo, line[num] - 35, i);
@@ -231,7 +231,7 @@ void *play_line(void *n)
 	}
 	bmp2lcd(GAMEUNBLOCK, FB, &vinfo, line[num] - 35, 144);
 }
-
+//歌曲演示
 void *game_play(int *m)
 {
 	int i;
@@ -245,13 +245,13 @@ void *game_play(int *m)
 		{
 			pthread_exit(NULL);
 		}
-		printf("m is %d\n", m[i]);
 		//歌曲分段
 		if (m[i] <= 0)
 		{
 			continue;
 			delay(m[i + 1]);
 		}
+		printf("play is %d\n", m[i]);
 		pthread_create(&playid, NULL, play_line, (void *)m[i]);
 		delay(m[i + 1]);
 		if (in_of_range(720, 800, 430, 480))
@@ -262,7 +262,6 @@ void *game_play(int *m)
 	}
 }
 //歌曲播放
-
 void music_score(int m[])
 {
 	int i;
@@ -276,17 +275,15 @@ void music_score(int m[])
 		{
 			break;
 		}
-		printf("m is %d\n", m[i]);
 		//歌曲分段
 		if (m[i] <= 0)
 		{
 			delay(m[i + 1]);
 			continue;
 		}
-
+		printf("music is %d\n", m[i]);
 		key_white(true, m[i] - 1);
 		pthread_create(&tid, NULL, play_note, (void *)(m[i] - 1));
-
 		delay(m[i + 1] * 0.9);
 		key_white(false, m[i] - 1);
 		delay(m[i + 1] * 0.1);
@@ -389,43 +386,50 @@ int main(int argc, char **argv)
 			{
 				len = sizeof(musicnum[0]) / sizeof(musicnum[0][0]);
 				musicnum[0][0] = len;
-				// music_score(musicnum[0]);
-				music_score(musicnum[0]);
+				if (play)
+					music_score(musicnum[0]);
+				else
+					pthread_create(&gameid, NULL, game_play, musicnum[0]);
 			}
 			else if (coor.x > 100 && coor.x < 180)
 			{
 				len = sizeof(musicnum[1]) / sizeof(musicnum[1][0]);
 				musicnum[1][0] = len;
-				// music_score(musicnum[1]);
-				music_score(musicnum[1]);
+				if (play)
+					music_score(musicnum[1]);
+				else
+					pthread_create(&gameid, NULL, game_play, musicnum[1]);
 			}
 			else if (coor.x > 190 && coor.x < 270)
 			{
 				len = sizeof(musicnum[2]) / sizeof(musicnum[2][0]);
 				musicnum[2][0] = len;
-				// music_score(musicnum[2]);
-				music_score(musicnum[2]);
+				if (play)
+					music_score(musicnum[2]);
+				else
+					pthread_create(&gameid, NULL, game_play, musicnum[2]);
 			}
 			else if (coor.x > 280 && coor.x < 360)
 			{
 				len = sizeof(musicnum[3]) / sizeof(musicnum[3][0]);
 				musicnum[3][0] = len;
-				music_score(musicnum[3]);
 				if (play)
-					music_score(musicnum[0]);
+					music_score(musicnum[3]);
 				else
-					pthread_create(&gameid, NULL, game_play, musicnum[0]);
+					pthread_create(&gameid, NULL, game_play, musicnum[3]);
 			}
 
 			else if (coor.x > 640 && coor.x < 720)
 			{
 				if (play)
 				{
+					printf("play\n");
 					bmp2lcd(KEY4, FB, &vinfo, 640, 430);
 					play = false;
 				}
 				else
 				{
+					printf("music\n");
 					bmp2lcd(KEY3, FB, &vinfo, 640, 430);
 					play = true;
 				}
@@ -433,6 +437,10 @@ int main(int argc, char **argv)
 			coor.x = 0;
 			coor.y = 0;
 			released = false;
+			// pthread_join(tid,NULL);
+			// pthread_join(gameid,NULL);
+			// pthread_join(playid,NULL);
+
 			continue;
 		}
 		//黑白键超出范围重置按键
