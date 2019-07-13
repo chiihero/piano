@@ -20,7 +20,7 @@ LDFLAGS  += -lpthread
 LDFLAGS  += -lbmp
 #LDFLAGS  += -Wl,-rpath=./lib
 
-all:piano
+all:clean piano
 
 piano:piano.c $(OBJ)
 	$(MAKE) -C $(SRCPATH)
