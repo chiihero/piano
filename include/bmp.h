@@ -26,6 +26,8 @@
 #define KEY1		"./res/bmp/key1.bmp"
 #define KEY2		"./res/bmp/key2.bmp"
 #define KEY3		"./res/bmp/key3.bmp"
+#define KEY4		"./res/bmp/key4.bmp"
+
 #define KEYSTOP		"./res/bmp/keystop.bmp"
 
 struct bitmap_header

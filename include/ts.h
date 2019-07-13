@@ -20,8 +20,7 @@ struct coordinate
 	int x;
 	int y;
 };
-
-void wait4touch(int ts, struct coordinate *coor, bool *released);
-void wait4leave(int ts);
+void Init_Ts(void);
+void wait4touch(struct coordinate *coor, bool *released);
 
 #endif
