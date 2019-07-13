@@ -6,13 +6,18 @@
 #define ON 1
 #define OFF 0
 
-int white[2][12], black[2][11]; //1.按键范围，2.按键是否被按
+int white[2][12], black[2][11], line[12]; //1.按键范围，2.按键是否被按
 char *FB;
 struct fb_var_screeninfo vinfo;
 pthread_t tid;
 pthread_t touchid;
+pthread_t gameid;
+pthread_t playid;
+
 struct coordinate coor, oldcoor;
 bool released = false;
+bool play = true;
+
 char *init_lcd(struct fb_var_screeninfo *vinfo)
 {
 	int lcd = open("/dev/fb0", O_RDWR);
@@ -37,12 +42,15 @@ void init_frame()
 	int i;
 	for (i = 0; i < 12; i++)
 	{
+		line[i] = 65 * i + 42;
+		bmp2lcd(GAMELINE, FB, &vinfo, line[i], 0);
+
 		white[0][i] = 65 * i + 10;
 		white[1][i] = OFF;
 		bmp2lcd(KEYOFF, FB, &vinfo, white[0][i], 150);
 		if (i > 0)
 		{
-			black[0][i - 1] = 65 * (i - 1) + 52;
+			black[0][i - 1] = 65 * (i - 1) + 53;
 			black[1][i - 1] = OFF;
 			bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][i - 1], 150);
 		}
@@ -54,11 +62,11 @@ void init_frame()
 	bmp2lcd(KEY4, FB, &vinfo, 280, 430);
 	bmp2lcd(KEYSTOP, FB, &vinfo, 720, 430);
 }
-
-void delay(int time)
+void delay(float time)
 {
 	usleep(time * 1000);
 }
+
 
 // 点击了在琴键之外区域
 bool out_of_range(struct coordinate *coor, struct coordinate *oldcoor)
@@ -169,13 +177,58 @@ bool piano_change(bool is_white, int new_pos, int old_pos, bool touch)
 	}
 	return touch;
 }
+void *play_line(void *n)
+{
+	int i;
+	int num = (int)n - 1;
+	printf("play_line ===========%d\n", num);
 
+	for (i = 0; i < 145; i += 2)
+	{
+		bmp2lcd(GAMEBLOCK, FB, &vinfo, line[num] - 35, i);
+		bmp2lcd(GAMEUNBLOCK, FB, &vinfo, line[num] - 35, i - 5);
+		delay(13.7);
+	}
+	bmp2lcd(GAMEUNBLOCK, FB, &vinfo, line[num] - 35, 144);
+}
+
+void *game_play(int *m)
+{
+	int i;
+	int len = m[0];
+	printf("len is %d\n", len);
+
+	for (i = 1; i < len; i += 2)
+	{ //歌曲结尾退出
+
+		if (m[i] == 0)
+		{
+			pthread_exit(NULL);
+		}
+		printf("m is %d\n", m[i]);
+		//歌曲分段
+		if (m[i] <= 0)
+		{
+			continue;
+			delay(m[i + 1]);
+		}
+		pthread_create(&playid, NULL, play_line, (void*)m[i]);
+		delay(m[i + 1]);
+		if (in_of_range(720, 800, 430, 480))
+		{
+			printf("exit\n");
+			pthread_exit(NULL);
+		}
+	}
+
+}
 //歌曲播放
 void music_score(int m[])
 {
 	int i;
 	int len = m[0];
 	printf("len is %d\n", len);
+
 	for (i = 1; i < len; i++)
 	{ //歌曲结尾退出
 		if (m[i] == 0)
@@ -206,19 +259,22 @@ void music_score2(int m[])
 	int i;
 	int len = m[0];
 	printf("len is %d\n", len);
+
 	for (i = 1; i < len; i += 2)
 	{ //歌曲结尾退出
+
 		if (m[i] == 0)
 		{
 			break;
 		}
 		printf("m is %d\n", m[i]);
 		//歌曲分段
-		if (m[i] < 0)
+		if (m[i] <= 0)
 		{
 			delay(m[i + 1]);
 			continue;
 		}
+
 		key_white(true, m[i] - 1);
 		pthread_create(&tid, NULL, play_note, (void *)(m[i]));
 		delay(m[i + 1] * 0.9);
@@ -233,32 +289,11 @@ void music_score2(int m[])
 }
 void *get_touch_xy(void *n)
 {
-
 	while (1)
 	{
 		wait4touch(&coor, &released);
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int main(int argc, char **argv)
 {
@@ -338,21 +373,19 @@ int main(int argc, char **argv)
 			w_touch = piano_change(true, wnew_pos, wold_pos, w_touch);
 		}
 		//歌曲部分
-		if (in_of_range(0, 360, 430, 480))
+		if (coor.y > 430 && coor.y < 480)
 		{
 			printf("music x=%d  y=%d \n", coor.x, coor.y);
 			if (coor.x > 10 && coor.x < 90)
 			{
 				len = sizeof(music[0]) / sizeof(music[0][0]);
 				music[0][0] = len;
-				// pthread_create(&scoreid, NULL, music_score, (music[0]));
 				music_score(music[0]);
 			}
 			else if (coor.x > 100 && coor.x < 180)
 			{
 				len = sizeof(music[1]) / sizeof(music[1][0]);
 				music[1][0] = len;
-				// pthread_create(&scoreid, NULL, music_score, (music[1]));
 				music_score(music[1]);
 			}
 			else if (coor.x > 190 && coor.x < 270)
@@ -360,16 +393,31 @@ int main(int argc, char **argv)
 				len = sizeof(music[2]) / sizeof(music[2][0]);
 				music[2][0] = len;
 				music_score(music[2]);
-				// pthread_create(&scoreid, NULL, music_score, (music[2]));
 			}
 			else if (coor.x > 280 && coor.x < 360)
 			{
 				len = sizeof(musicnum[0]) / sizeof(musicnum[0][0]);
 				musicnum[0][0] = len;
-				music_score2(musicnum[0]);
-				// pthread_create(&scoreid, NULL, music_score, (music[2]));
+				
+				if (play) music_score2(musicnum[0]);
+				else pthread_create(&gameid, NULL, game_play, musicnum[0]);
 			}
-			
+			else if (coor.x > 640 && coor.x < 720)
+			{
+				if (play)
+				{
+					bmp2lcd(KEY4, FB, &vinfo, 640, 430);
+					play = false;
+					
+				}else
+				{
+					bmp2lcd(KEY3, FB, &vinfo, 640, 430);
+					play = true;
+				}
+
+			}
+			coor.x =0;
+			coor.y =0;
 		}
 	}
 	pthread_exit(NULL);

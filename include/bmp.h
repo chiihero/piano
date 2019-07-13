@@ -27,8 +27,12 @@
 #define KEY2		"./res/bmp/key2.bmp"
 #define KEY3		"./res/bmp/key3.bmp"
 #define KEY4		"./res/bmp/key4.bmp"
-
 #define KEYSTOP		"./res/bmp/keystop.bmp"
+
+#define GAMELINE	"./res/bmp/game_line.bmp"
+#define GAMEBLOCK	"./res/bmp/game_block.bmp"
+#define GAMEUNBLOCK	"./res/bmp/game_unblock.bmp"
+
 
 struct bitmap_header
 {
