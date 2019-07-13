@@ -13,7 +13,7 @@ pthread_t tid;
 pthread_t touchid;
 pthread_t gameid;
 pthread_t playid;
-
+// pthread_attr_t attr;
 struct coordinate coor, oldcoor;
 bool released = false;
 bool play = true;
@@ -220,6 +220,7 @@ bool piano_change(bool is_white, int new_pos, int old_pos, bool touch)
 //音节下降
 void *play_line(void *n)
 {
+	pthread_detach(pthread_self());
 	int i;
 	int num = (int)n - 1;
 	printf("play_line ===========%d\n", num);
@@ -234,6 +235,7 @@ void *play_line(void *n)
 //歌曲演示
 void *game_play(int *m)
 {
+	pthread_detach(pthread_self());
 	int i;
 	int len = m[0];
 	printf("len is %d\n", len);
@@ -333,11 +335,14 @@ int main(int argc, char **argv)
 	init_frame();
 	// 准备触摸屏
 	Init_Ts();
+	//设置线程分离属性
+	// pthread_attr_init(NULL);
+	// pthread_attr_setdetachstate(NULL, PTHREAD_CREATE_DETACHED);
 	int wnew_pos = 0, wold_pos = 0, bnew_pos = 0, bold_pos = 0;
 	bool w_touch = true, b_touch = true;
 	int len;
 	bool use_touch = false;
-	pthread_create(&touchid, NULL, get_touch_xy, NULL);
+	pthread_create(&touchid,NULL, get_touch_xy, NULL);
 	while (1)
 	{
 		// 等待手指触碰琴键
@@ -381,7 +386,9 @@ int main(int argc, char **argv)
 		if (coor.y > 430 && coor.y < 480)
 		{
 			printf("music x=%d  y=%d \n", coor.x, coor.y);
+
 			int i;
+			//歌曲选择
 			for (i = 0; i < 4; i++)
 			{
 				if (coor.x > 10+i*90 && coor.x < 90+i*90)
@@ -391,7 +398,8 @@ int main(int argc, char **argv)
 					if (play)
 						music_score(musicnum[i]);
 					else
-						pthread_create(&gameid, NULL, game_play, musicnum[i]);
+						pthread_create(&gameid,NULL, game_play, (int *)musicnum[i]);
+						
 				}
 			}
 			if (coor.x > 640 && coor.x < 720)
@@ -424,7 +432,6 @@ int main(int argc, char **argv)
 			key_white(false, wold_pos);
 		use_touch = false;
 	}
-	pthread_join(tid, NULL);
 	// pthread_exit(NULL);
 	return 0;
 }
