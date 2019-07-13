@@ -1,6 +1,23 @@
 #include "ts.h"
 
-void wait4touch(int ts, struct coordinate *coor, bool *released)
+
+
+
+int ts;
+
+void Init_Ts(void)
+{
+	
+	ts = open("/dev/input/event0",O_RDONLY);
+	if(-1 == ts)
+	{
+		perror("open ts fail");
+		return ;
+	}
+	
+}
+
+void wait4touch(struct coordinate *coor, bool *released)
 {
 	struct input_event buf;
 
@@ -18,6 +35,11 @@ void wait4touch(int ts, struct coordinate *coor, bool *released)
 			*released = true;
 			break;
 		}
+		else
+		// {
+		// 	*released = false;
+		// }
+		
 		if (buf.type == EV_ABS &&
 			buf.code == ABS_X)
 		{
@@ -35,4 +57,6 @@ void wait4touch(int ts, struct coordinate *coor, bool *released)
 		if (x_ready && y_ready)
 			break;
 	}
+	// coor->x =0;
+	// coor->y =0;
 }
