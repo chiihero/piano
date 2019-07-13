@@ -3,7 +3,10 @@
 #include <pthread.h>
 #include "audio.h"
 #include "scorenum.h"
-int white[12], black[11];
+#define ON 1
+#define OFF 0
+
+int white[2][12], black[2][11]; //1.按键范围，2.按键是否被按
 char *FB;
 struct fb_var_screeninfo vinfo;
 pthread_t tid;
@@ -18,7 +21,7 @@ void init_frame()
 	// 显示标题栏
 	show_bmpxy(BAR, 0, 0);
 	// 显示琴键
-	int i;
+	int i,j;
 	for (i = 0; i < 12; i++)
 	{
 		white[i] = 65 * i + 10;
