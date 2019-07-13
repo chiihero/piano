@@ -134,13 +134,13 @@ void key_white(bool key, int pos)
 	{
 		if (key)
 		{
-			bmp2lcd(KEYONC, FB, &vinfo, white[0][pos], 47);
+			bmp2lcd(KEYONC, FB, &vinfo, white[0][pos], 150);
 		}
 		else
 		{
-			bmp2lcd(KEYOFFC, FB, &vinfo, white[0][pos], 47);
+			bmp2lcd(KEYOFFC, FB, &vinfo, white[0][pos], 150);
 		}
-		bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][pos], 47);
+		bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][pos], 150);
 
 	}
 }
@@ -442,8 +442,8 @@ int main(int argc, char **argv)
 			continue;
 		}
 		//黑白键超出范围重置按键
-		if (coor.y > 0 && coor.y < 47&&use_touch)
-			bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][bold_pos], 47);
+		if (coor.y > 0 && coor.y < 150&&use_touch)
+			bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][bold_pos], 150);
 		if (coor.y > 320 && coor.y < 430&&use_touch)
 			key_white(false,wold_pos);
 		use_touch = false;		
