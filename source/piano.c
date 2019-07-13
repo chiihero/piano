@@ -237,7 +237,6 @@ void *game_play(int *m)
 	int i;
 	int len = m[0];
 	printf("len is %d\n", len);
-
 	for (i = 1; i < len; i += 2)
 	{ //歌曲结尾退出
 
@@ -382,44 +381,20 @@ int main(int argc, char **argv)
 		if (coor.y > 430 && coor.y < 480)
 		{
 			printf("music x=%d  y=%d \n", coor.x, coor.y);
-			if (coor.x > 10 && coor.x < 90)
+			int i;
+			for (i = 0; i < 4; i++)
 			{
-				len = sizeof(musicnum[0]) / sizeof(musicnum[0][0]);
-				musicnum[0][0] = len;
-				if (play)
-					music_score(musicnum[0]);
-				else
-					pthread_create(&gameid, NULL, game_play, musicnum[0]);
+				if (coor.x > 10+i*90 && coor.x < 90+i*90)
+				{
+					len = sizeof(musicnum[i]) / sizeof(musicnum[i][0]);
+					musicnum[i][0] = len;
+					if (play)
+						music_score(musicnum[i]);
+					else
+						pthread_create(&gameid, NULL, game_play, musicnum[i]);
+				}
 			}
-			else if (coor.x > 100 && coor.x < 180)
-			{
-				len = sizeof(musicnum[1]) / sizeof(musicnum[1][0]);
-				musicnum[1][0] = len;
-				if (play)
-					music_score(musicnum[1]);
-				else
-					pthread_create(&gameid, NULL, game_play, musicnum[1]);
-			}
-			else if (coor.x > 190 && coor.x < 270)
-			{
-				len = sizeof(musicnum[2]) / sizeof(musicnum[2][0]);
-				musicnum[2][0] = len;
-				if (play)
-					music_score(musicnum[2]);
-				else
-					pthread_create(&gameid, NULL, game_play, musicnum[2]);
-			}
-			else if (coor.x > 280 && coor.x < 360)
-			{
-				len = sizeof(musicnum[3]) / sizeof(musicnum[3][0]);
-				musicnum[3][0] = len;
-				if (play)
-					music_score(musicnum[3]);
-				else
-					pthread_create(&gameid, NULL, game_play, musicnum[3]);
-			}
-
-			else if (coor.x > 640 && coor.x < 720)
+			if (coor.x > 640 && coor.x < 720)
 			{
 				if (play)
 				{
@@ -440,7 +415,6 @@ int main(int argc, char **argv)
 			// pthread_join(tid,NULL);
 			// pthread_join(gameid,NULL);
 			// pthread_join(playid,NULL);
-
 			continue;
 		}
 		//黑白键超出范围重置按键
