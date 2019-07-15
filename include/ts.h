@@ -21,6 +21,7 @@ struct coordinate
 	int y;
 };
 void Init_Ts(void);
+void UnInit_Ts(void);
 void wait4touch(struct coordinate *coor, bool *released);
 
 #endif

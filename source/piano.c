@@ -5,31 +5,32 @@
 #include "scorenum.h"
 #define ON 1
 #define OFF 0
-char keyON[][50]={KEY1ON,KEY2ON,KEY3ON,KEY4ON,KEY5ON,KEY6ON,KEY7ON};
-char keyOFF[][50]={KEY1OFF,KEY2OFF,KEY3OFF,KEY4OFF,KEY5OFF,KEY6OFF,KEY7OFF};
-int mpos=0;
+char keyON[][50] = {KEY1ON, KEY2ON, KEY3ON, KEY4ON, KEY5ON, KEY6ON, KEY7ON};
+char keyOFF[][50] = {KEY1OFF, KEY2OFF, KEY3OFF, KEY4OFF, KEY5OFF, KEY6OFF, KEY7OFF};
+int mpos = 0;
 
-int white[2][12], black[2][11], line[12]; //1.按键范围，2.按键是否被按
+int white[2][12], black[2][11], line[12], key[8]; //1.按键范围，2.按键是否被按
 char *FB;
+int lcd;
 struct fb_var_screeninfo vinfo;
 pthread_t tid;
-pthread_t touchid;//触摸多线程
-pthread_t gameid;//游戏多线程
-pthread_t playid;//游戏内单个键多线程
+pthread_t touchid; //触摸多线程
+pthread_t gameid;  //游戏多线程
+pthread_t playid;  //游戏内单个键多线程
 // pthread_attr_t attr;
 struct coordinate coor, oldcoor;
 bool released = false;
 bool play = true;
 char *init_lcd(struct fb_var_screeninfo *vinfo)
 {
-	int lcd = open("/dev/fb0", O_RDWR);
+	lcd = open("/dev/fb0", O_RDWR);
 
 	bzero(vinfo, sizeof(struct fb_var_screeninfo));
 	ioctl(lcd, FBIOGET_VSCREENINFO, vinfo);
 
-	char *FB = mmap(NULL, vinfo->xres * vinfo->yres * 4,
-					PROT_READ | PROT_WRITE,
-					MAP_SHARED, lcd, 0);
+	FB = mmap(NULL, vinfo->xres * vinfo->yres * 4,
+			  PROT_READ | PROT_WRITE,
+			  MAP_SHARED, lcd, 0);
 	return FB;
 }
 
@@ -68,10 +69,11 @@ void init_frame()
 	// bmp2lcd(KEY3, FB, &vinfo, 190, 430);
 	// bmp2lcd(KEY4, FB, &vinfo, 280, 430);
 	int len = sizeof(keyOFF) / sizeof(keyOFF[0]);
-	printf("keynum==%d\n",len);
+	printf("keynum==%d\n", len);
 	for (i = 0; i < len; i++)
 	{
-		bmp2lcd(keyOFF[i], FB, &vinfo, 10+i*90, 430);
+		key[i] = 10 + i * 85;
+		bmp2lcd(keyOFF[i], FB, &vinfo, key[i], 430);
 	}
 	bmp2lcd(KEYPLAY, FB, &vinfo, 640, 430);
 	// 显示停止按键
@@ -231,12 +233,13 @@ void *play_line(void *n)
 {
 	pthread_detach(pthread_self());
 	int i;
-	int pos=line[(int)n] - 35;
-	printf("play_line ===========pos=%d\n",pos);
+	int pos = line[(int)n] - 35;
+	printf("play_line ===========pos=%d\n", pos);
 	for (i = 0; i < 145; i += 2)
 	{
 		bmp2lcd(GAMEBLOCK, FB, &vinfo, pos, i);
-		if (i>3)bmp2lcd(GAMEUNBLOCK, FB, &vinfo,pos, i - 4);
+		if (i > 3)
+			bmp2lcd(GAMEUNBLOCK, FB, &vinfo, pos, i - 4);
 		delay(20);
 	}
 	bmp2lcd(GAMEUNBLOCK, FB, &vinfo, pos, 144);
@@ -250,15 +253,16 @@ void *game_play(int *m)
 	printf("len is %d\n", len);
 	for (i = 1; i < len; i += 2)
 	{ //歌曲结尾退出
-
-		if (in_of_range(720, 800, 430, 480))
+		printf("x=%d  y=%d \n", coor.x, coor.y);
+		if (coor.x>720&&coor.y>430)
 		{
-			bmp2lcd(keyOFF[mpos], FB, &vinfo, 10+mpos*90, 430);
+			bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
 			printf("exit\n");
 			pthread_exit(NULL);
 		}
 		if (m[i] == 0)
 		{
+			bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
 			pthread_exit(NULL);
 		}
 		//歌曲分段
@@ -268,12 +272,10 @@ void *game_play(int *m)
 			delay(m[i + 1]);
 		}
 		printf("play is %d\n", m[i]);
-		pthread_create(&playid, NULL, play_line, (void *)m[i]-1);
+		pthread_create(&playid, NULL, play_line, (void *)m[i] - 1);
 		delay(m[i + 1]);
-
 	}
-	bmp2lcd(keyOFF[mpos], FB, &vinfo, 10+mpos*90, 430);
-
+	bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
 }
 //歌曲播放
 void music_score(int m[])
@@ -356,7 +358,7 @@ int main(int argc, char **argv)
 	bool w_touch = true, b_touch = true;
 	int len;
 	bool use_touch = false;
-	pthread_create(&touchid,NULL, get_touch_xy, NULL);
+	pthread_create(&touchid, NULL, get_touch_xy, NULL);
 	while (1)
 	{
 		delay(10); //防止太快导致coor没写入就读取
@@ -404,21 +406,19 @@ int main(int argc, char **argv)
 			//歌曲选择
 			for (mpos = 0; mpos < 7; mpos++)
 			{
-				if (coor.x > 10+mpos*90 && coor.x < 90+mpos*90)
+				if (coor.x > 10 + mpos * 90 && coor.x < 90 + mpos * 90)
 				{
 					len = sizeof(musicnum[mpos]) / sizeof(musicnum[mpos][0]);
 					musicnum[mpos][0] = len;
-					bmp2lcd(keyON[mpos], FB, &vinfo, 10+mpos*90, 430);
+					bmp2lcd(keyON[mpos], FB, &vinfo, key[mpos], 430);
 
-					if (play){
+					if (play)
+					{
 						music_score(musicnum[mpos]);
-						bmp2lcd(keyOFF[mpos], FB, &vinfo, 10+mpos*90, 430);
+						bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
 					}
-						
 					else
-						pthread_create(&gameid,NULL, game_play, (int *)musicnum[mpos]);
-					
-
+						pthread_create(&gameid, NULL, game_play, (int *)musicnum[mpos]);
 				}
 			}
 			if (coor.x > 640 && coor.x < 720)
@@ -450,7 +450,20 @@ int main(int argc, char **argv)
 		if (coor.y > 320 && coor.y < 430 && use_touch)
 			key_white(false, wold_pos);
 		use_touch = false;
+
+		if (in_of_range(0, 50, 0, 50))
+		{
+			printf("exit piano\n");
+			break;
+		}
 	}
-	// pthread_exit(NULL);
+	//开始卸载
+	UnInit_Ts();
+	//撤销映射
+	munmap(FB,			   //映射后的地址，通过mmap返回的值
+		   800 * 480 * 4); //映射的大小
+	close(lcd);
+	pthread_exit(NULL);
+	
 	return 0;
 }
