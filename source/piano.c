@@ -5,14 +5,14 @@
 #include "scorenum.h"
 #define ON 1
 #define OFF 0
-
+char keynum[][50]={KEY1,KEY2,KEY3,KEY4,KEY5,KEY6,KEY7};
 int white[2][12], black[2][11], line[12]; //1.按键范围，2.按键是否被按
 char *FB;
 struct fb_var_screeninfo vinfo;
 pthread_t tid;
-pthread_t touchid;
-pthread_t gameid;
-pthread_t playid;
+pthread_t touchid;//触摸多线程
+pthread_t gameid;//游戏多线程
+pthread_t playid;//游戏内单个键多线程
 // pthread_attr_t attr;
 struct coordinate coor, oldcoor;
 bool released = false;
@@ -61,11 +61,18 @@ void init_frame()
 			bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][i - 1], 150);
 		}
 	}
-	// 显示按键
-	bmp2lcd(KEY1, FB, &vinfo, 10, 430);
-	bmp2lcd(KEY2, FB, &vinfo, 100, 430);
-	bmp2lcd(KEY3, FB, &vinfo, 190, 430);
-	bmp2lcd(KEY4, FB, &vinfo, 280, 430);
+	// 显示音乐按键
+	// bmp2lcd(KEY1, FB, &vinfo, 10, 430);
+	// bmp2lcd(KEY2, FB, &vinfo, 100, 430);
+	// bmp2lcd(KEY3, FB, &vinfo, 190, 430);
+	// bmp2lcd(KEY4, FB, &vinfo, 280, 430);
+	int len = sizeof(keynum) / sizeof(keynum[0]);
+	printf("keynum==%d\n",len);
+	for (i = 0; i < len; i++)
+	{
+		bmp2lcd(keynum[i], FB, &vinfo, 10+i*90, 430);
+	}
+	// 显示停止按键
 	bmp2lcd(KEYSTOP, FB, &vinfo, 720, 430);
 }
 void delay(float time)
@@ -300,6 +307,7 @@ void *get_touch_xy(void *n)
 {
 	while (1)
 	{
+		// 等待手指触碰琴键
 		wait4touch(&coor, &released);
 	}
 }
@@ -346,7 +354,6 @@ int main(int argc, char **argv)
 	pthread_create(&touchid,NULL, get_touch_xy, NULL);
 	while (1)
 	{
-		// 等待手指触碰琴键
 		delay(10); //防止太快导致coor没写入就读取
 		// printf("x=%d  y=%d \n", coor.x, coor.y);
 		if (out_of_range(&coor, &oldcoor))
@@ -390,7 +397,7 @@ int main(int argc, char **argv)
 
 			int i;
 			//歌曲选择
-			for (i = 0; i < 4; i++)
+			for (i = 0; i < 7; i++)
 			{
 				if (coor.x > 10+i*90 && coor.x < 90+i*90)
 				{
