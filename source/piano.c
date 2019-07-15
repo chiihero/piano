@@ -7,6 +7,7 @@
 #define OFF 0
 char keyON[][50]={KEY1ON,KEY2ON,KEY3ON,KEY4ON,KEY5ON,KEY6ON,KEY7ON};
 char keyOFF[][50]={KEY1OFF,KEY2OFF,KEY3OFF,KEY4OFF,KEY5OFF,KEY6OFF,KEY7OFF};
+int mpos=0;
 
 int white[2][12], black[2][11], line[12]; //1.按键范围，2.按键是否被按
 char *FB;
@@ -19,7 +20,6 @@ pthread_t playid;//游戏内单个键多线程
 struct coordinate coor, oldcoor;
 bool released = false;
 bool play = true;
-
 char *init_lcd(struct fb_var_screeninfo *vinfo)
 {
 	int lcd = open("/dev/fb0", O_RDWR);
@@ -253,6 +253,7 @@ void *game_play(int *m)
 
 		if (in_of_range(720, 800, 430, 480))
 		{
+			bmp2lcd(keyOFF[mpos], FB, &vinfo, 10+mpos*90, 430);
 			printf("exit\n");
 			pthread_exit(NULL);
 		}
@@ -271,6 +272,8 @@ void *game_play(int *m)
 		delay(m[i + 1]);
 
 	}
+	bmp2lcd(keyOFF[mpos], FB, &vinfo, 10+mpos*90, 430);
+
 }
 //歌曲播放
 void music_score(int m[])
@@ -397,21 +400,24 @@ int main(int argc, char **argv)
 		{
 			printf("music x=%d  y=%d \n", coor.x, coor.y);
 
-			int i;
+			int mpos;
 			//歌曲选择
-			for (i = 0; i < 7; i++)
+			for (mpos = 0; mpos < 7; mpos++)
 			{
-				if (coor.x > 10+i*90 && coor.x < 90+i*90)
+				if (coor.x > 10+mpos*90 && coor.x < 90+mpos*90)
 				{
-					len = sizeof(musicnum[i]) / sizeof(musicnum[i][0]);
-					musicnum[i][0] = len;
-					bmp2lcd(keyON[i], FB, &vinfo, 10+i*90, 430);
+					len = sizeof(musicnum[mpos]) / sizeof(musicnum[mpos][0]);
+					musicnum[mpos][0] = len;
+					bmp2lcd(keyON[mpos], FB, &vinfo, 10+mpos*90, 430);
 
-					if (play)
-						music_score(musicnum[i]);
+					if (play){
+						music_score(musicnum[mpos]);
+						bmp2lcd(keyOFF[mpos], FB, &vinfo, 10+mpos*90, 430);
+					}
+						
 					else
-						pthread_create(&gameid,NULL, game_play, (int *)musicnum[i]);
-					bmp2lcd(keyOFF[i], FB, &vinfo, 10+i*90, 430);
+						pthread_create(&gameid,NULL, game_play, (int *)musicnum[mpos]);
+					
 
 				}
 			}
