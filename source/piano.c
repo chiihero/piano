@@ -8,19 +8,17 @@
 char keyON[][50] = {KEY1ON, KEY2ON, KEY3ON, KEY4ON, KEY5ON, KEY6ON, KEY7ON};
 char keyOFF[][50] = {KEY1OFF, KEY2OFF, KEY3OFF, KEY4OFF, KEY5OFF, KEY6OFF, KEY7OFF};
 int mpos = 0;
-
 int white[2][12], black[2][11], line[12], key[8]; //1.按键范围，2.按键是否被按
 char *FB;
 int lcd;
 struct fb_var_screeninfo vinfo;
 pthread_t tid;
-pthread_t touchid; //触摸多线程
-pthread_t gameid;  //游戏多线程
-pthread_t playid;  //游戏内单个键多线程
-// pthread_attr_t attr;
-struct coordinate coor, oldcoor;
+pthread_t touchid;				 //触摸多线程
+pthread_t gameid;				 //游戏多线程
+pthread_t playid;				 //游戏内单个键多线程
+struct coordinate coor, oldcoor; //按键x，y
 bool released = false;
-bool play = true;
+bool play = true; //播放演示模式
 char *init_lcd(struct fb_var_screeninfo *vinfo)
 {
 	lcd = open("/dev/fb0", O_RDWR);
@@ -254,7 +252,7 @@ void *game_play(int *m)
 	for (i = 1; i < len; i += 2)
 	{ //歌曲结尾退出
 		printf("x=%d  y=%d \n", coor.x, coor.y);
-		if (coor.x>720&&coor.y>430)
+		if (coor.x > 720 && coor.y > 430)
 		{
 			bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
 			printf("exit\n");
@@ -321,149 +319,149 @@ void *get_touch_xy(void *n)
 
 int main(int argc, char **argv)
 {
-	usage(argv[0]);
-	if (argc == 2)
+usage(argv[0]);
+if (argc == 2)
+{
+	switch (atoi(argv[1]))
 	{
-		switch (atoi(argv[1]))
-		{
-		case 0:
-			vol = -105;
-			break;
-		case 1:
-			vol = -45;
-			break;
-		case 2:
-			vol = -15;
-			break;
-		case 3:
-			vol = 10;
-			break;
-		}
-	}
-	else
-	{
+	case 0:
+		vol = -105;
+		break;
+	case 1:
 		vol = -45;
+		break;
+	case 2:
+		vol = -15;
+		break;
+	case 3:
+		vol = 10;
+		break;
 	}
-	// 准备LCD
-	FB = init_lcd(&vinfo);
-	bzero(FB, vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8);
-	//初始化界面
-	init_frame();
-	// 准备触摸屏
-	Init_Ts();
-	//设置线程分离属性
-	// pthread_attr_init(NULL);
-	// pthread_attr_setdetachstate(NULL, PTHREAD_CREATE_DETACHED);
-	int wnew_pos = 0, wold_pos = 0, bnew_pos = 0, bold_pos = 0;
-	bool w_touch = true, b_touch = true;
-	int len;
-	bool use_touch = false;
-	pthread_create(&touchid, NULL, get_touch_xy, NULL);
-	while (1)
+}
+else
+{
+	vol = -45;
+}
+// 准备LCD
+FB = init_lcd(&vinfo);
+bzero(FB, vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8);
+//初始化界面
+init_frame();
+// 准备触摸屏
+Init_Ts();
+//设置线程分离属性
+// pthread_attr_init(NULL);
+// pthread_attr_setdetachstate(NULL, PTHREAD_CREATE_DETACHED);
+int wnew_pos = 0, wold_pos = 0, bnew_pos = 0, bold_pos = 0;
+bool w_touch = true, b_touch = true;
+int len;
+bool use_touch = false;
+pthread_create(&touchid, NULL, get_touch_xy, NULL);
+while (1)
+{
+	delay(10); //防止太快导致coor没写入就读取
+	// printf("x=%d  y=%d \n", coor.x, coor.y);
+	if (out_of_range(&coor, &oldcoor))
+		continue;
+	oldcoor.x = coor.x;
+	oldcoor.y = coor.y;
+	//黑色键部分
+	if (coor.y > 150 && coor.y < 300)
 	{
-		delay(10); //防止太快导致coor没写入就读取
-		// printf("x=%d  y=%d \n", coor.x, coor.y);
-		if (out_of_range(&coor, &oldcoor))
-			continue;
-		oldcoor.x = coor.x;
-		oldcoor.y = coor.y;
-		//黑色键部分
-		if (coor.y > 150 && coor.y < 300)
+		bold_pos = bnew_pos;
+		bnew_pos = (coor.x - 50) / 65;
+		printf("black x=%d  y=%d wnew_pos=%d\n", coor.x, coor.y, bnew_pos);
+		if (bnew_pos > 10)
 		{
-			bold_pos = bnew_pos;
-			bnew_pos = (coor.x - 50) / 65;
-			printf("black x=%d  y=%d wnew_pos=%d\n", coor.x, coor.y, bnew_pos);
-			if (bnew_pos > 10)
-			{
-				continue;
-			}
-
-			b_touch = piano_change(false, bnew_pos, bold_pos, b_touch);
-			use_touch = true;
 			continue;
 		}
-		//白色键部分
-		if (coor.y > 300 && coor.y < 430)
-		{
-			wold_pos = wnew_pos;
-			wnew_pos = (coor.x - 10) / 65;
-			printf("white x=%d  y=%d wnew_pos=%d\n", coor.x, coor.y, wnew_pos);
-			if (wnew_pos > 11)
-			{
-				wnew_pos = 11;
-			}
 
-			w_touch = piano_change(true, wnew_pos, wold_pos, w_touch);
-			use_touch = true;
-			continue;
+		b_touch = piano_change(false, bnew_pos, bold_pos, b_touch);
+		use_touch = true;
+		continue;
+	}
+	//白色键部分
+	if (coor.y > 300 && coor.y < 430)
+	{
+		wold_pos = wnew_pos;
+		wnew_pos = (coor.x - 10) / 65;
+		printf("white x=%d  y=%d wnew_pos=%d\n", coor.x, coor.y, wnew_pos);
+		if (wnew_pos > 11)
+		{
+			wnew_pos = 11;
 		}
-		//歌曲部分
-		if (coor.y > 430 && coor.y < 480)
+
+		w_touch = piano_change(true, wnew_pos, wold_pos, w_touch);
+		use_touch = true;
+		continue;
+	}
+	//歌曲部分
+	if (coor.y > 430 && coor.y < 480)
+	{
+		printf("music x=%d  y=%d \n", coor.x, coor.y);
+
+		int mpos;
+		//歌曲选择
+		for (mpos = 0; mpos < 7; mpos++)
 		{
-			printf("music x=%d  y=%d \n", coor.x, coor.y);
-
-			int mpos;
-			//歌曲选择
-			for (mpos = 0; mpos < 7; mpos++)
+			if (coor.x > 10 + mpos * 90 && coor.x < 90 + mpos * 90)
 			{
-				if (coor.x > 10 + mpos * 90 && coor.x < 90 + mpos * 90)
-				{
-					len = sizeof(musicnum[mpos]) / sizeof(musicnum[mpos][0]);
-					musicnum[mpos][0] = len;
-					bmp2lcd(keyON[mpos], FB, &vinfo, key[mpos], 430);
+				len = sizeof(musicnum[mpos]) / sizeof(musicnum[mpos][0]);
+				musicnum[mpos][0] = len;
+				bmp2lcd(keyON[mpos], FB, &vinfo, key[mpos], 430);
 
-					if (play)
-					{
-						music_score(musicnum[mpos]);
-						bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
-					}
-					else
-						pthread_create(&gameid, NULL, game_play, (int *)musicnum[mpos]);
-				}
-			}
-			if (coor.x > 640 && coor.x < 720)
-			{
 				if (play)
 				{
-					printf("demo\n");
-					bmp2lcd(KEYDEMO, FB, &vinfo, 640, 430);
-					play = false;
+					music_score(musicnum[mpos]);
+					bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
 				}
 				else
-				{
-					printf("play\n");
-					bmp2lcd(KEYPLAY, FB, &vinfo, 640, 430);
-					play = true;
-				}
+					pthread_create(&gameid, NULL, game_play, (int *)musicnum[mpos]);
 			}
-			coor.x = 0;
-			coor.y = 0;
-			released = false;
-			// pthread_join(tid,NULL);
-			// pthread_join(gameid,NULL);
-			// pthread_join(playid,NULL);
-			continue;
 		}
-		//黑白键超出范围重置按键
-		if (coor.y > 0 && coor.y < 150 && use_touch)
-			bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][bold_pos], 150);
-		if (coor.y > 320 && coor.y < 430 && use_touch)
-			key_white(false, wold_pos);
-		use_touch = false;
-
-		if (in_of_range(0, 50, 0, 50))
+		if (coor.x > 640 && coor.x < 720)
 		{
-			printf("exit piano\n");
-			break;
+			if (play)
+			{
+				printf("demo\n");
+				bmp2lcd(KEYDEMO, FB, &vinfo, 640, 430);
+				play = false;
+			}
+			else
+			{
+				printf("play\n");
+				bmp2lcd(KEYPLAY, FB, &vinfo, 640, 430);
+				play = true;
+			}
 		}
+		coor.x = 0;
+		coor.y = 0;
+		released = false;
+
+		continue;
 	}
-	//开始卸载
+	//黑白键超出范围重置按键
+	if (coor.y > 0 && coor.y < 150 && use_touch)
+		bmp2lcd(KEYBLACKOFF, FB, &vinfo, black[0][bold_pos], 150);
+	if (coor.y > 320 && coor.y < 430 && use_touch)
+		key_white(false, wold_pos);
+	use_touch = false;
+
+	if (in_of_range(0, 50, 0, 50))
+	{
+		printf("exit piano\n");
+		break;
+	}
+}
+	//结束和卸载程序
 	UnInit_Ts();
 	//撤销映射
 	munmap(FB,			   //映射后的地址，通过mmap返回的值
 		   800 * 480 * 4); //映射的大小
 	close(lcd);
 	pthread_exit(NULL);
-	
+	pthread_join(tid, NULL);
+	pthread_join(gameid, NULL);
+	pthread_join(playid, NULL);
 	return 0;
 }
