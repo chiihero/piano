@@ -5,7 +5,9 @@
 #include "scorenum.h"
 #define ON 1
 #define OFF 0
-char keynum[][50]={KEY1,KEY2,KEY3,KEY4,KEY5,KEY6,KEY7};
+char keyON[][50]={KEY1ON,KEY2ON,KEY3ON,KEY4ON,KEY5ON,KEY6ON,KEY7ON};
+char keyOFF[][50]={KEY1OFF,KEY2OFF,KEY3OFF,KEY4OFF,KEY5OFF,KEY6OFF,KEY7OFF};
+
 int white[2][12], black[2][11], line[12]; //1.按键范围，2.按键是否被按
 char *FB;
 struct fb_var_screeninfo vinfo;
@@ -50,7 +52,6 @@ void init_frame()
 		bmp2lcd(KEYOFF, FB, &vinfo, white[0][i], 150);
 		if (i > 0)
 		{
-
 			j = i - 1;
 			if (j == 2 || j == 5 || j == 9)
 			{
@@ -66,11 +67,11 @@ void init_frame()
 	// bmp2lcd(KEY2, FB, &vinfo, 100, 430);
 	// bmp2lcd(KEY3, FB, &vinfo, 190, 430);
 	// bmp2lcd(KEY4, FB, &vinfo, 280, 430);
-	int len = sizeof(keynum) / sizeof(keynum[0]);
+	int len = sizeof(keyOFF) / sizeof(keyOFF[0]);
 	printf("keynum==%d\n",len);
 	for (i = 0; i < len; i++)
 	{
-		bmp2lcd(keynum[i], FB, &vinfo, 10+i*90, 430);
+		bmp2lcd(keyOFF[i], FB, &vinfo, 10+i*90, 430);
 	}
 	// 显示停止按键
 	bmp2lcd(KEYSTOP, FB, &vinfo, 720, 430);
@@ -403,25 +404,28 @@ int main(int argc, char **argv)
 				{
 					len = sizeof(musicnum[i]) / sizeof(musicnum[i][0]);
 					musicnum[i][0] = len;
+					bmp2lcd(keyON[i], FB, &vinfo, 10+i*90, 430);
+
 					if (play)
 						music_score(musicnum[i]);
 					else
 						pthread_create(&gameid,NULL, game_play, (int *)musicnum[i]);
-						
+					bmp2lcd(keyOFF[i], FB, &vinfo, 10+i*90, 430);
+
 				}
 			}
 			if (coor.x > 640 && coor.x < 720)
 			{
 				if (play)
 				{
-					printf("play\n");
-					bmp2lcd(KEY4, FB, &vinfo, 640, 430);
+					printf("demo\n");
+					bmp2lcd(KEYDEMO, FB, &vinfo, 640, 430);
 					play = false;
 				}
 				else
 				{
-					printf("music\n");
-					bmp2lcd(KEY3, FB, &vinfo, 640, 430);
+					printf("play\n");
+					bmp2lcd(KEYPLAY, FB, &vinfo, 640, 430);
 					play = true;
 				}
 			}
