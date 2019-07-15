@@ -73,6 +73,7 @@ void init_frame()
 	{
 		bmp2lcd(keyOFF[i], FB, &vinfo, 10+i*90, 430);
 	}
+	bmp2lcd(KEYPLAY, FB, &vinfo, 640, 430);
 	// 显示停止按键
 	bmp2lcd(KEYSTOP, FB, &vinfo, 720, 430);
 }
