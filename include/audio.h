@@ -8,6 +8,5 @@
 
 extern int vol;
 
-void *play_note(void *arg);
-
+void *play_note(void *n);
 #endif

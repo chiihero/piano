@@ -16,6 +16,11 @@ void Init_Ts(void)
 	}
 	
 }
+void UnInit_Ts(void)
+{
+	close(ts);
+}
+
 
 void wait4touch(struct coordinate *coor, bool *released)
 {

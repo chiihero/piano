@@ -23,12 +23,31 @@
 #define KEYOFFC		"./res/bmp/key_off_c.bmp"
 #define KEYBLACKON	"./res/bmp/key_black_on.bmp"
 #define KEYBLACKOFF	"./res/bmp/key_black_off.bmp"
-#define KEY1		"./res/bmp/key1.bmp"
-#define KEY2		"./res/bmp/key2.bmp"
-#define KEY3		"./res/bmp/key3.bmp"
-#define KEY4		"./res/bmp/key4.bmp"
 
+#define KEY1ON		"./res/bmp/key1_on.bmp"
+#define KEY2ON		"./res/bmp/key2_on.bmp"
+#define KEY3ON		"./res/bmp/key3_on.bmp"
+#define KEY4ON		"./res/bmp/key4_on.bmp"
+#define KEY5ON		"./res/bmp/key5_on.bmp"
+#define KEY6ON		"./res/bmp/key6_on.bmp"
+#define KEY7ON		"./res/bmp/key7_on.bmp"
+
+#define KEY1OFF		"./res/bmp/key1_off.bmp"
+#define KEY2OFF		"./res/bmp/key2_off.bmp"
+#define KEY3OFF		"./res/bmp/key3_off.bmp"
+#define KEY4OFF		"./res/bmp/key4_off.bmp"
+#define KEY5OFF		"./res/bmp/key5_off.bmp"
+#define KEY6OFF		"./res/bmp/key6_off.bmp"
+#define KEY7OFF		"./res/bmp/key7_off.bmp"
+
+#define KEYPLAY		"./res/bmp/keyplay.bmp"
+#define KEYDEMO		"./res/bmp/keydemo.bmp"
 #define KEYSTOP		"./res/bmp/keystop.bmp"
+
+#define GAMELINE	"./res/bmp/game_line.bmp"
+#define GAMEBLOCK	"./res/bmp/game_block.bmp"
+#define GAMEUNBLOCK	"./res/bmp/game_unblock.bmp"
+
 
 struct bitmap_header
 {
