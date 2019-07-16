@@ -8,7 +8,6 @@
 #define OFF 0
 char keyON[][50] = {KEY1ON, KEY2ON, KEY3ON, KEY4ON, KEY5ON, KEY6ON, KEY7ON};
 char keyOFF[][50] = {KEY1OFF, KEY2OFF, KEY3OFF, KEY4OFF, KEY5OFF, KEY6OFF, KEY7OFF};
-int mpos = 0;
 int white[2][12], black[2][11], line[12], key[7]; //1.按键范围，2.按键是否被按
 char *FB;
 int lcd;
@@ -19,8 +18,6 @@ pthread_t gameid;				 //游戏多线程
 pthread_t playid;				 //游戏内单个键多线程
 struct coordinate coor, oldcoor; //按键x，y
 bool released = false;
-bool play = true; //播放演示模式
-
 
 char *init_lcd(struct fb_var_screeninfo *vinfo)
 {
@@ -227,50 +224,7 @@ bool piano_change(bool is_white, int new_pos, int old_pos, bool touch)
 	}
 	return touch;
 }
-//音节下降
-void *play_line(void *n)
-{
-	pthread_detach(pthread_self());
-	int i;
-	int pos = line[(int)n] - 35;
-	printf("play_line ===========pos=%d\n", pos);
-	for (i = 0; i < 145; i += 2)
-	{
-		bmp2lcd(GAMEBLOCK, FB, &vinfo, pos, i);
-		if (i > 3)
-			bmp2lcd(GAMEUNBLOCK, FB, &vinfo, pos, i - 4);
-		delay(20);
-	}
-	bmp2lcd(GAMEUNBLOCK, FB, &vinfo, pos, 144);
-}
-//歌曲演示
-void *game_play(int *m)
-{
-	pthread_detach(pthread_self());
-	int i;
-	int len = m[0];
-	printf("len is %d\n", len);
-	for (i = 1; i < len; i += 2)
-	{ //歌曲结尾退出
-		// printf("%d,%s,%d\n",mpos,keyOFF[mpos],key[mpos]);
-		printf("x=%d  y=%d \n", coor.x, coor.y);
-		if ((coor.x > 720 && coor.y > 430)||m[i] == 0)
-		{
-			break;
-		}
-		//歌曲分段
-		if (m[i] <= 0)
-		{
-			delay(m[i + 1]);
-			continue;
-		}
-		// printf("play is %d\n", m[i]);
-		pthread_create(&playid, NULL, play_line, (void *)m[i] - 1);
-		delay(m[i + 1]);
-	}
-	printf("exit\n");
-	bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
-}
+
 //歌曲播放
 void music_score(int m[])
 {
@@ -406,21 +360,11 @@ while (1)
 				len = sizeof(musicnum[i]) / sizeof(musicnum[i][0]);
 				musicnum[i][0] = len;
 				bmp2lcd(keyON[i], FB, &vinfo, key[i], 430);
-
-				if (play)
-				{
-					music_score(musicnum[i]);
-					bmp2lcd(keyOFF[i], FB, &vinfo, key[i], 430);
-				}
-				else
-				{
-					mpos = i;
-					pthread_create(&gameid, NULL, game_play, (int *)musicnum[i]);
-				}
+				music_score(musicnum[i]);
+				bmp2lcd(keyOFF[i], FB, &vinfo, key[i], 430);
 				break;
 			}
 		}
-	
 		coor.x = 0;
 		coor.y = 0;
 		released = false;
