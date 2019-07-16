@@ -1,6 +1,7 @@
 #include "ts.h"
 #include "bmp.h"
 #include <pthread.h>
+#include <unistd.h>
 #include "audio.h"
 #include "scorenum.h"
 #define ON 1
@@ -8,7 +9,7 @@
 char keyON[][50] = {KEY1ON, KEY2ON, KEY3ON, KEY4ON, KEY5ON, KEY6ON, KEY7ON};
 char keyOFF[][50] = {KEY1OFF, KEY2OFF, KEY3OFF, KEY4OFF, KEY5OFF, KEY6OFF, KEY7OFF};
 int mpos = 0;
-int white[2][12], black[2][11], line[12], key[8]; //1.按键范围，2.按键是否被按
+int white[2][12], black[2][11], line[12], key[7]; //1.按键范围，2.按键是否被按
 char *FB;
 int lcd;
 struct fb_var_screeninfo vinfo;
@@ -19,6 +20,8 @@ pthread_t playid;				 //游戏内单个键多线程
 struct coordinate coor, oldcoor; //按键x，y
 bool released = false;
 bool play = true; //播放演示模式
+
+
 char *init_lcd(struct fb_var_screeninfo *vinfo)
 {
 	lcd = open("/dev/fb0", O_RDWR);
@@ -156,7 +159,7 @@ void key_white(bool key, int pos)
 //选择黑或白键
 void key_white_black(bool keyon, bool is_white, int pos)
 {
-	printf("keyon is %d\n is_white is %d\n pos is %d \n", keyon, is_white, pos);
+	// printf("keyon is %d\n is_white is %d\n pos is %d \n", keyon, is_white, pos);
 
 	if (is_white)
 	{
@@ -187,7 +190,7 @@ void key_white_black(bool keyon, bool is_white, int pos)
 bool piano_change(bool is_white, int new_pos, int old_pos, bool touch)
 {
 	int num = 0;
-	printf("is_white is %d\nnew_pos is %d\nold_pos is %d \nreleased is %d\n touch is %d\n", is_white, new_pos, old_pos, released, touch);
+	printf("is_white is %d\tnew_pos is %d\told_pos is %d \treleased is %d\t touch is %d\n", is_white, new_pos, old_pos, released, touch);
 	if (released)
 	{
 		key_white_black(false, is_white, new_pos);
@@ -251,28 +254,23 @@ void *game_play(int *m)
 	printf("len is %d\n", len);
 	for (i = 1; i < len; i += 2)
 	{ //歌曲结尾退出
+		// printf("%d,%s,%d\n",mpos,keyOFF[mpos],key[mpos]);
 		printf("x=%d  y=%d \n", coor.x, coor.y);
-		if (coor.x > 720 && coor.y > 430)
+		if ((coor.x > 720 && coor.y > 430)||m[i] == 0)
 		{
-			bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
-			printf("exit\n");
-			pthread_exit(NULL);
-		}
-		if (m[i] == 0)
-		{
-			bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
-			pthread_exit(NULL);
+			break;
 		}
 		//歌曲分段
 		if (m[i] <= 0)
 		{
-			continue;
 			delay(m[i + 1]);
+			continue;
 		}
-		printf("play is %d\n", m[i]);
+		// printf("play is %d\n", m[i]);
 		pthread_create(&playid, NULL, play_line, (void *)m[i] - 1);
 		delay(m[i + 1]);
 	}
+	printf("exit\n");
 	bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
 }
 //歌曲播放
@@ -297,6 +295,10 @@ void music_score(int m[])
 		}
 		printf("music is %d\n", m[i]);
 		key_white(true, m[i] - 1);
+		// if (fork() == 0){
+		// 	play_note2(m[i] - 1);
+		// } 
+
 		pthread_create(&tid, NULL, play_note, (void *)(m[i] - 1));
 		delay(m[i + 1] * 0.9);
 		key_white(false, m[i] - 1);
@@ -400,23 +402,27 @@ while (1)
 	{
 		printf("music x=%d  y=%d \n", coor.x, coor.y);
 
-		int mpos;
 		//歌曲选择
-		for (mpos = 0; mpos < 7; mpos++)
+		int i;
+		for (i = 0; i < 7; i++)
 		{
-			if (coor.x > 10 + mpos * 90 && coor.x < 90 + mpos * 90)
+			if (coor.x > 10 + i * 90 && coor.x < 90 + i * 90)
 			{
-				len = sizeof(musicnum[mpos]) / sizeof(musicnum[mpos][0]);
-				musicnum[mpos][0] = len;
-				bmp2lcd(keyON[mpos], FB, &vinfo, key[mpos], 430);
+				len = sizeof(musicnum[i]) / sizeof(musicnum[i][0]);
+				musicnum[i][0] = len;
+				bmp2lcd(keyON[i], FB, &vinfo, key[i], 430);
 
 				if (play)
 				{
-					music_score(musicnum[mpos]);
-					bmp2lcd(keyOFF[mpos], FB, &vinfo, key[mpos], 430);
+					music_score(musicnum[i]);
+					bmp2lcd(keyOFF[i], FB, &vinfo, key[i], 430);
 				}
 				else
-					pthread_create(&gameid, NULL, game_play, (int *)musicnum[mpos]);
+				{
+					mpos = i;
+					pthread_create(&gameid, NULL, game_play, (int *)musicnum[i]);
+				}
+				break;
 			}
 		}
 		if (coor.x > 640 && coor.x < 720)
@@ -437,7 +443,6 @@ while (1)
 		coor.x = 0;
 		coor.y = 0;
 		released = false;
-
 		continue;
 	}
 	//黑白键超出范围重置按键
@@ -447,7 +452,7 @@ while (1)
 		key_white(false, wold_pos);
 	use_touch = false;
 
-	if (in_of_range(0, 50, 0, 50))
+	if (in_of_range(0, 50, 0, 50))  
 	{
 		printf("exit piano\n");
 		break;
@@ -463,5 +468,6 @@ while (1)
 	pthread_join(tid, NULL);
 	pthread_join(gameid, NULL);
 	pthread_join(playid, NULL);
+	exit(0);
 	return 0;
 }
