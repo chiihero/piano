@@ -21,7 +21,6 @@ void UnInit_Ts(void)
 	close(ts);
 }
 
-
 void wait4touch(struct coordinate *coor, bool *released)
 {
 	struct input_event buf;

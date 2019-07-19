@@ -342,7 +342,7 @@ if (argc == 2)
 }
 else
 {
-	vol = -45;
+	vol = -15;
 }
 // 准备LCD
 FB = init_lcd(&vinfo);
